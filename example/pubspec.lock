@@ -34,7 +34,7 @@ packages:
   aud_midi_standard:
     dependency: "direct main"
     description:
-      path: "../../../.ocean/audmidi/aud_midi_standard"
+      path: "../../aud_midi_standard"
       relative: true
     source: path
     version: "0.1.0"
