@@ -7,6 +7,10 @@
 package com.audanika.aud_midi_android;
 
 import android.media.midi.MidiReceiver;
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 /**
  * Collects the MIDI data of one port for Dart.
@@ -16,6 +20,10 @@ import android.media.midi.MidiReceiver;
  * everything with {@link #drain()}. When the buffer is full, the newest chunk
  * is dropped and counted. Data that arrives while no listener is set is
  * discarded.
+ *
+ * <p>With a native tap set ({@link #setNativeTap}), the MIDI thread first hands
+ * every chunk to the native tap library ({@link AudMidiNativeTap}), with or
+ * without a listener. {@link #deviceGone} tells the taps of a removed device.
  */
 public final class AudMidiReceiver extends MidiReceiver {
   /** The default buffer size in bytes. */
@@ -31,6 +39,12 @@ public final class AudMidiReceiver extends MidiReceiver {
   private boolean signalPending;
   private AudMidiDataListener listener;
   private int token;
+
+  // The handle of the native tap, 0 for none; read on the MIDI thread.
+  private volatile long nativeTap;
+  // The receivers with a native tap by the id of their device, for deviceGone.
+  private static final Map<Integer, List<AudMidiReceiver>> TAPS = new HashMap<>();
+  private int tapDevice;
 
   /** Creates a receiver with a buffer of {@code capacity} bytes. */
   public AudMidiReceiver(int capacity) {
@@ -51,12 +65,71 @@ public final class AudMidiReceiver extends MidiReceiver {
     }
   }
 
+  /**
+   * Hands every later chunk to the native tap {@code handle} of the tap library
+   * first; 0 stops it. {@code deviceId} is the device of the port, so that
+   * {@link #deviceGone} finds the tap; 0 for a port without a device.
+   */
+  public void setNativeTap(long handle, int deviceId) {
+    synchronized (TAPS) {
+      if (nativeTap != 0 && tapDevice != 0) {
+        List<AudMidiReceiver> receivers = TAPS.get(tapDevice);
+        if (receivers != null) {
+          receivers.remove(this);
+          if (receivers.isEmpty()) {
+            TAPS.remove(tapDevice);
+          }
+        }
+      }
+      nativeTap = handle;
+      tapDevice = handle != 0 ? deviceId : 0;
+      if (handle != 0 && deviceId != 0) {
+        List<AudMidiReceiver> receivers = TAPS.get(deviceId);
+        if (receivers == null) {
+          receivers = new ArrayList<>();
+          TAPS.put(deviceId, receivers);
+        }
+        receivers.add(this);
+      }
+    }
+  }
+
+  /** The handle of the native tap, 0 for none. */
+  public long nativeTap() {
+    return nativeTap;
+  }
+
+  /**
+   * Tells the native taps of the ports of the device {@code deviceId} that the
+   * device is gone; called from the device callback.
+   */
+  public static void deviceGone(int deviceId) {
+    List<AudMidiReceiver> receivers;
+    synchronized (TAPS) {
+      List<AudMidiReceiver> known = TAPS.get(deviceId);
+      if (known == null) {
+        return;
+      }
+      receivers = new ArrayList<>(known);
+    }
+    for (AudMidiReceiver receiver : receivers) {
+      long handle = receiver.nativeTap;
+      if (handle != 0) {
+        AudMidiNativeTap.gone(handle);
+      }
+    }
+  }
+
   @Override
   public void onSend(byte[] msg, int offset, int count, long timestamp) {
     if (count <= 0) {
       return;
     }
     long time = timestamp != 0 ? timestamp : System.nanoTime();
+    long tap = nativeTap;
+    if (tap != 0) {
+      AudMidiNativeTap.send(tap, msg, offset, count, time);
+    }
     AudMidiDataListener toSignal = null;
     int signalToken = 0;
     synchronized (lock) {

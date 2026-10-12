@@ -42,10 +42,16 @@ import 'virtual/midi_android_virtual_ports.dart';
 /// - Hotplug through the shim's `AudMidiDeviceCallback`.
 /// - [virtualPorts]: the ports of the app's own `AudMidiDeviceService`s.
 /// - [bluetooth]: scan and connect of BLE-MIDI peripherals.
+/// - Native taps ([attachNativeTap]): the Java receiver hands every chunk
+///   of the port to the native tap library on the MIDI thread, with the
+///   bytes of a MIDI 1.0 port or the complete packets of a UMP port and
+///   the `System.nanoTime()` stamp; `gone` comes from the device callback.
+///   A tap keeps the port open without Dart listeners; a removed device
+///   detaches its taps after `gone`.
 ///
 /// The backend runs in the isolate that starts it, usually the MIDI
 /// isolate; all callbacks arrive there.
-final class AndroidMidiBackend implements MidiBackend {
+final class AndroidMidiBackend implements MidiBackend, MidiNativeTapBackend {
   /// Creates the backend.
   ///
   /// - [context] the Android application context; null uses the context
@@ -103,7 +109,10 @@ final class AndroidMidiBackend implements MidiBackend {
     if (_host == null || platform == null) return;
     platform.unwatchDevices();
     await _bluetooth?.stopScan();
-    for (final port in [..._inputs.keys, ..._outputs.keys]) {
+    for (final port in [..._inputs.keys]) {
+      _closeInput(port);
+    }
+    for (final port in [..._outputs.keys]) {
       await closePort(port);
     }
     for (final device in [..._devices.values]) {
@@ -122,31 +131,65 @@ final class AndroidMidiBackend implements MidiBackend {
   /// Throws [MidiPortGone] for an unknown port and a [MidiNativeError] when
   /// Android cannot open it.
   @override
-  Future<void> openPort(MidiPortId port) {
-    _requireHost();
-    if (_inputs.containsKey(port) || _outputs.containsKey(port)) {
-      return Future.value();
-    }
-    // A block body: an arrow would return the removed future itself, and
-    // whenComplete would wait for it forever.
-    return _opening[port] ??= _open(port).whenComplete(() {
-      _opening.remove(port);
-    });
+  Future<void> openPort(MidiPortId port) async {
+    await _ensureOpen(port);
+    _inputs[port]?.isOpen = true;
   }
 
-  /// Closes [port]; the device closes with its last port.
+  /// Closes [port]; an input with a native tap stays open for the tap,
+  /// the device closes with its last port.
   @override
   Future<void> closePort(MidiPortId port) async {
-    final input = _inputs.remove(port);
+    final input = _inputs[port];
     if (input != null) {
-      input.receiver.close();
-      _release(input.device);
+      input.isOpen = false;
+      if (input.tap == null) _closeInput(port);
     }
     final output = _outputs.remove(port);
     if (output != null) {
       output.sender.close();
       _release(output.device);
     }
+  }
+
+  // ...........................................................................
+  /// Returns whether [port] is a known input.
+  @override
+  bool supportsNativeTap(MidiPortId port) =>
+      _table.port(port)?.isInput ?? false;
+
+  /// Opens the input [port] when needed and attaches [tap] to its receiver.
+  ///
+  /// Throws [MidiPortGone] for an unknown port, an [ArgumentError] for an
+  /// output, a [StateError] when a tap is attached already and a
+  /// [MidiNativeError] when Android cannot open the port or the tap library
+  /// is missing.
+  @override
+  Future<void> attachNativeTap(MidiPortId port, MidiNativeTap tap) async {
+    _requireHost();
+    final info = _table.port(port) ?? (throw MidiPortGone(port));
+    if (!info.isInput) throw ArgumentError.value(port, 'port', 'Not an input');
+    if (_inputs[port]?.tap != null) throw StateError('$port has a tap already');
+    await _ensureOpen(port);
+    final input = _inputs[port] ?? (throw MidiPortGone(port));
+    if (input.tap != null) throw StateError('$port has a tap already');
+    input.receiver.attachNativeTap(tap, ump: input.ump);
+    input.tap = tap;
+  }
+
+  /// Detaches the tap of [port] after its last call; the port closes when
+  /// no Dart listener holds it. Throws [MidiPortGone] for an unknown port.
+  @override
+  Future<void> detachNativeTap(MidiPortId port) async {
+    final input = _inputs[port];
+    if (input == null) {
+      if (_table.port(port) == null) throw MidiPortGone(port);
+      return;
+    }
+    if (input.tap == null) return;
+    input.receiver.detachNativeTap();
+    input.tap = null;
+    if (!input.isOpen) _closeInput(port);
   }
 
   // ...........................................................................
@@ -259,6 +302,27 @@ final class AndroidMidiBackend implements MidiBackend {
   MidiBackendHost _requireHost() =>
       _host ?? (throw StateError('The backend is not started'));
 
+  /// Opens [port] unless it is open or opening.
+  Future<void> _ensureOpen(MidiPortId port) {
+    _requireHost();
+    if (_inputs.containsKey(port) || _outputs.containsKey(port)) {
+      return Future.value();
+    }
+    // A block body: an arrow would return the removed future itself, and
+    // whenComplete would wait for it forever.
+    return _opening[port] ??= _open(port).whenComplete(() {
+      _opening.remove(port);
+    });
+  }
+
+  /// Closes the input [port] and releases its device.
+  void _closeInput(MidiPortId port) {
+    final input = _inputs.remove(port);
+    if (input == null) return;
+    input.receiver.close();
+    _release(input.device);
+  }
+
   Future<void> _open(MidiPortId id) async {
     final port = _table.port(id) ?? (throw MidiPortGone(id));
     final device = _table.deviceOf(id)!;
@@ -367,7 +431,8 @@ final class AndroidMidiBackend implements MidiBackend {
     final host = _host;
     if (input == null || host == null) return;
     final data = input.receiver.drain();
-    if (data == null) return;
+    // A port open for its native tap only: the tap got the data already.
+    if (data == null || !input.isOpen) return;
     _resyncIfDue();
     final MidiAndroidDrained drained;
     try {
@@ -564,16 +629,25 @@ final class _OpenDevice {
 // #############################################################################
 /// An open input of the app.
 final class _OpenInput {
-  _OpenInput({required this.receiver, required bool ump, this.device})
+  _OpenInput({required this.receiver, required this.ump, this.device})
     : assembler = ump ? MidiAndroidUmpAssembler() : null;
 
   final MidiAndroidReceiver receiver;
+
+  /// Whether the port exchanges UMP words.
+  final bool ump;
 
   /// Assembles the packets of a UMP port; null for a byte port.
   final MidiAndroidUmpAssembler? assembler;
 
   /// The opened device; null for an own virtual port.
   final _OpenDevice? device;
+
+  /// Whether a Dart listener opened the port with `openPort`.
+  bool isOpen = false;
+
+  /// The native tap attached to the port, or null.
+  MidiNativeTap? tap;
 }
 
 // #############################################################################

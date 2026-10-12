@@ -11,8 +11,10 @@ dependencies:
     path: ../
   aud_midi_core: any
   aud_midi_standard: any
+  ffi: ^2.2.0
   flutter:
     sdk: flutter
+  jni: ^1.1.0
 
 # The siblings of the aud_midi family, checked out next to this package.
 dependency_overrides:

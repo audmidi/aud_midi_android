@@ -48,11 +48,13 @@ classes:
   - "com.audanika.aud_midi_android.AudMidiContext"
   - "com.audanika.aud_midi_android.AudMidiDataListener"
   - "com.audanika.aud_midi_android.AudMidiReceiver"
+  - "com.audanika.aud_midi_android.AudMidiNativeTap"
   - "com.audanika.aud_midi_android.AudMidiDeviceListener"
   - "com.audanika.aud_midi_android.AudMidiDeviceCallback"
   - "com.audanika.aud_midi_android.AudMidiScanListener"
   - "com.audanika.aud_midi_android.AudMidiScanCallback"
   - "com.audanika.aud_midi_android.AudMidiVirtualDevices"
+  - "com.audanika.aud_midi_android.AudMidiLoopbackService"
 
 output:
   dart:

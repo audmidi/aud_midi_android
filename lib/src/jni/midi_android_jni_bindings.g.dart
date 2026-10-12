@@ -24256,6 +24256,10 @@ final class $AudMidiDataListener$Type$
 ///everything with \#drain(). When the buffer is full, the newest chunk
 ///is dropped and counted. Data that arrives while no listener is set is
 ///discarded.
+///
+///With a native tap set (\#setNativeTap), the MIDI thread first hands
+///every chunk to the native tap library (AudMidiNativeTap), with or
+///without a listener. \#deviceGone tells the taps of a removed device.
 extension type AudMidiReceiver._(jni$_.JObject _$this) implements MidiReceiver {
   static final _class = jni$_.JClass.forName(
     r'com/audanika/aud_midi_android/AudMidiReceiver',
@@ -24305,6 +24309,35 @@ extension type AudMidiReceiver._(jni$_.JObject _$this) implements MidiReceiver {
       capacity,
     ).object<AudMidiReceiver>();
   }
+
+  static final _id_deviceGone = _class.staticMethodId(r'deviceGone', r'(I)V');
+
+  static final _deviceGone =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JThrowablePtr Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+                jni$_.VarArgs<(jni$_.Int32,)>,
+              )
+            >
+          >('globalEnv_CallStaticVoidMethod')
+          .asFunction<
+            jni$_.JThrowablePtr Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+              core$_.int,
+            )
+          >();
+
+  /// from: `static public void deviceGone(int deviceId)`
+  ///
+  /// Tells the native taps of the ports of the device {@code deviceId} that the
+  ///device is gone; called from the device callback.
+  static void deviceGone(core$_.int deviceId) {
+    final _$$classRef = _class.reference;
+    _deviceGone(_$$classRef.pointer, _id_deviceGone.pointer, deviceId).check();
+  }
 }
 
 extension AudMidiReceiver$$Methods on AudMidiReceiver {
@@ -24345,6 +24378,74 @@ extension AudMidiReceiver$$Methods on AudMidiReceiver {
       _$value.pointer,
       token,
     ).check();
+  }
+
+  static final _id_setNativeTap = AudMidiReceiver._class.instanceMethodId(
+    r'setNativeTap',
+    r'(JI)V',
+  );
+
+  static final _setNativeTap =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JThrowablePtr Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+                jni$_.VarArgs<(jni$_.Int64, jni$_.Int32)>,
+              )
+            >
+          >('globalEnv_CallVoidMethod')
+          .asFunction<
+            jni$_.JThrowablePtr Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+              core$_.int,
+              core$_.int,
+            )
+          >();
+
+  /// from: `public void setNativeTap(long handle, int deviceId)`
+  ///
+  /// Hands every later chunk to the native tap {@code handle} of the tap library
+  ///first; 0 stops it. {@code deviceId} is the device of the port, so that
+  ///\#deviceGone finds the tap; 0 for a port without a device.
+  void setNativeTap(core$_.int handle, core$_.int deviceId) {
+    final _$$selfRef = reference;
+    _setNativeTap(
+      _$$selfRef.pointer,
+      _id_setNativeTap.pointer,
+      handle,
+      deviceId,
+    ).check();
+  }
+
+  static final _id_nativeTap = AudMidiReceiver._class.instanceMethodId(
+    r'nativeTap',
+    r'()J',
+  );
+
+  static final _nativeTap =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallLongMethod')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `public long nativeTap()`
+  ///
+  /// The handle of the native tap, 0 for none.
+  core$_.int nativeTap() {
+    final _$$selfRef = reference;
+    return _nativeTap(_$$selfRef.pointer, _id_nativeTap.pointer).long;
   }
 
   static final _id_onSend = AudMidiReceiver._class.instanceMethodId(
@@ -24445,6 +24546,146 @@ final class $AudMidiReceiver$Type$ extends jni$_.JType<AudMidiReceiver> {
   @jni$_.internal
   @core$_.override
   String get signature => r'Lcom/audanika/aud_midi_android/AudMidiReceiver;';
+}
+
+/// from: `com.audanika.aud_midi_android.AudMidiNativeTap`
+///
+/// The native tap library of the package, {@code libaud_midi_android.so},
+///built by the package's Dart build hook and packaged into the app by
+///Flutter.
+///
+///AudMidiReceiver calls \#send on the MIDI thread with every
+///chunk of a tapped port and AudMidiDeviceCallback calls \#gone
+///when the device of a tapped port disappears. Both run without Dart.
+extension type AudMidiNativeTap._(jni$_.JObject _$this)
+    implements jni$_.JObject {
+  static final _class = jni$_.JClass.forName(
+    r'com/audanika/aud_midi_android/AudMidiNativeTap',
+  );
+
+  /// The type which includes information such as the signature of this class.
+  static const jni$_.JType<AudMidiNativeTap> type = $AudMidiNativeTap$Type$();
+  static final _id_load = _class.staticMethodId(r'load', r'()Z');
+
+  static final _load =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallStaticBooleanMethod')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `synchronized static public boolean load()`
+  ///
+  /// Loads the library with {@code System.loadLibrary} once and returns whether
+  ///it is loaded; \#loadError() tells why not.
+  static core$_.bool load() {
+    final _$$classRef = _class.reference;
+    return _load(_$$classRef.pointer, _id_load.pointer).boolean;
+  }
+
+  static final _id_setLoaded = _class.staticMethodId(r'setLoaded', r'()V');
+
+  static final _setLoaded =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JThrowablePtr Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallStaticVoidMethod')
+          .asFunction<
+            jni$_.JThrowablePtr Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `synchronized static public void setLoaded()`
+  ///
+  /// Marks the library as loaded by other means, e.g. by Dart, after its native
+  ///methods were registered.
+  static void setLoaded() {
+    final _$$classRef = _class.reference;
+    _setLoaded(_$$classRef.pointer, _id_setLoaded.pointer).check();
+  }
+
+  static final _id_get$isLoaded = _class.staticMethodId(r'isLoaded', r'()Z');
+
+  static final _get$isLoaded =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallStaticBooleanMethod')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `synchronized static public boolean isLoaded()`
+  ///
+  /// Whether the library is loaded.
+  static core$_.bool get isLoaded {
+    final _$$classRef = _class.reference;
+    return _get$isLoaded(_$$classRef.pointer, _id_get$isLoaded.pointer).boolean;
+  }
+
+  static final _id_loadError = _class.staticMethodId(
+    r'loadError',
+    r'()Ljava/lang/String;',
+  );
+
+  static final _loadError =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallStaticObjectMethod')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `synchronized static public java.lang.String loadError()`
+  /// The returned object must be released after use, by calling the [release] method.
+  ///
+  /// The error of the last failed \#load(), or null.
+  static jni$_.JString? loadError() {
+    final _$$classRef = _class.reference;
+    return _loadError(
+      _$$classRef.pointer,
+      _id_loadError.pointer,
+    ).object<jni$_.JString?>();
+  }
+}
+
+final class $AudMidiNativeTap$Type$ extends jni$_.JType<AudMidiNativeTap> {
+  @jni$_.internal
+  const $AudMidiNativeTap$Type$();
+
+  @jni$_.internal
+  @core$_.override
+  String get signature => r'Lcom/audanika/aud_midi_android/AudMidiNativeTap;';
 }
 
 /// from: `com.audanika.aud_midi_android.AudMidiDeviceListener`
@@ -25542,6 +25783,136 @@ final class $AudMidiVirtualDevices$Type$
       r'Lcom/audanika/aud_midi_android/AudMidiVirtualDevices;';
 }
 
+/// from: `com.audanika.aud_midi_android.AudMidiLoopbackService`
+///
+/// A virtual MIDI device for tests that sends everything it receives on input
+///port n unchanged, timestamp included, out of output port n.
+///
+///Only test apps declare it in their manifest. \#setEnabled unplugs
+///and re-plugs the device, so that tests see hotplug on the emulator.
+extension type AudMidiLoopbackService._(jni$_.JObject _$this)
+    implements MidiDeviceService {
+  static final _class = jni$_.JClass.forName(
+    r'com/audanika/aud_midi_android/AudMidiLoopbackService',
+  );
+
+  /// The type which includes information such as the signature of this class.
+  static const jni$_.JType<AudMidiLoopbackService> type =
+      $AudMidiLoopbackService$Type$();
+  static final _id_new$ = _class.constructorId(r'()V');
+
+  static final _new$ =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_NewObject')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `public void <init>()`
+  /// The returned object must be released after use, by calling the [release] method.
+  factory AudMidiLoopbackService() {
+    final _$$classRef = _class.reference;
+    return _new$(
+      _$$classRef.pointer,
+      _id_new$.pointer,
+    ).object<AudMidiLoopbackService>();
+  }
+
+  static final _id_setEnabled = _class.staticMethodId(
+    r'setEnabled',
+    r'(Landroid/content/Context;Z)V',
+  );
+
+  static final _setEnabled =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JThrowablePtr Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+                jni$_.VarArgs<(jni$_.Pointer<jni$_.Void>, jni$_.Int32)>,
+              )
+            >
+          >('globalEnv_CallStaticVoidMethod')
+          .asFunction<
+            jni$_.JThrowablePtr Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+              jni$_.Pointer<jni$_.Void>,
+              core$_.int,
+            )
+          >();
+
+  /// from: `static public void setEnabled(android.content.Context context, boolean enabled)`
+  ///
+  /// Enables or disables the service component of this app: the MIDI service
+  ///removes the device of a disabled component and adds it again when it is
+  ///enabled, like a device that is unplugged and plugged in again.
+  static void setEnabled(Context? context, core$_.bool enabled) {
+    final _$$classRef = _class.reference;
+    final _$context = context?.reference ?? jni$_.jNullReference;
+    _setEnabled(
+      _$$classRef.pointer,
+      _id_setEnabled.pointer,
+      _$context.pointer,
+      enabled ? 1 : 0,
+    ).check();
+  }
+}
+
+extension AudMidiLoopbackService$$Methods on AudMidiLoopbackService {
+  static final _id_onGetInputPortReceivers = AudMidiLoopbackService._class
+      .instanceMethodId(
+        r'onGetInputPortReceivers',
+        r'()[Landroid/media/midi/MidiReceiver;',
+      );
+
+  static final _onGetInputPortReceivers =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JniResult Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+              )
+            >
+          >('globalEnv_CallObjectMethod')
+          .asFunction<
+            jni$_.JniResult Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+            )
+          >();
+
+  /// from: `public android.media.midi.MidiReceiver[] onGetInputPortReceivers()`
+  /// The returned object must be released after use, by calling the [release] method.
+  jni$_.JArray<MidiReceiver?>? onGetInputPortReceivers() {
+    final _$$selfRef = reference;
+    return _onGetInputPortReceivers(
+      _$$selfRef.pointer,
+      _id_onGetInputPortReceivers.pointer,
+    ).object<jni$_.JArray<MidiReceiver?>?>();
+  }
+}
+
+final class $AudMidiLoopbackService$Type$
+    extends jni$_.JType<AudMidiLoopbackService> {
+  @jni$_.internal
+  const $AudMidiLoopbackService$Type$();
+
+  @jni$_.internal
+  @core$_.override
+  String get signature =>
+      r'Lcom/audanika/aud_midi_android/AudMidiLoopbackService;';
+}
+
 /// from: `android.os.Handler`
 ///
 /// WARNING: Handler is a stub. To generate bindings for this class, include
@@ -26540,4 +26911,23 @@ final class $WorkSource$Type$ extends jni$_.JType<WorkSource> {
   @jni$_.internal
   @core$_.override
   String get signature => r'Landroid/os/WorkSource;';
+}
+
+/// from: `android.media.midi.MidiDeviceService`
+///
+/// WARNING: MidiDeviceService is a stub. To generate bindings for this class, include
+/// android.media.midi.MidiDeviceService in your config's classes list.
+///
+extension type MidiDeviceService._(jni$_.JObject _$this)
+    implements jni$_.JObject {
+  static const jni$_.JType<MidiDeviceService> type = $MidiDeviceService$Type$();
+}
+
+final class $MidiDeviceService$Type$ extends jni$_.JType<MidiDeviceService> {
+  @jni$_.internal
+  const $MidiDeviceService$Type$();
+
+  @jni$_.internal
+  @core$_.override
+  String get signature => r'Landroid/media/midi/MidiDeviceService;';
 }

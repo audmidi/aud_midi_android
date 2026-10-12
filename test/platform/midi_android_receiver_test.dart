@@ -7,6 +7,7 @@
 import 'dart:typed_data';
 
 import 'package:aud_midi_android/aud_midi_android.dart';
+import 'package:aud_midi_core/aud_midi_core.dart';
 import 'package:test/test.dart';
 
 void main() {
@@ -24,6 +25,18 @@ void main() {
         expect((receiver as _Receiver).closed, isTrue);
       });
     });
+
+    group('attachNativeTap(tap, ump), detachNativeTap(), nativeTap', () {
+      test('hold the tap of the port', () {
+        final MidiAndroidReceiver receiver = _Receiver();
+        const tap = MidiNativeTap(function: 1, user: 2);
+        expect(receiver.nativeTap, isNull);
+        receiver.attachNativeTap(tap, ump: true);
+        expect(receiver.nativeTap, tap);
+        receiver.detachNativeTap();
+        expect(receiver.nativeTap, isNull);
+      });
+    });
   });
 }
 
@@ -36,6 +49,16 @@ final class _Receiver implements MidiAndroidReceiver {
 
   @override
   Uint8List? drain() => _queue.isEmpty ? null : _queue.removeAt(0);
+
+  @override
+  void attachNativeTap(MidiNativeTap tap, {required bool ump}) =>
+      nativeTap = tap;
+
+  @override
+  void detachNativeTap() => nativeTap = null;
+
+  @override
+  MidiNativeTap? nativeTap;
 
   @override
   void close() => closed = true;

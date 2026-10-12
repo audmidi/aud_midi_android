@@ -4,12 +4,22 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+// The example pokes the native tap library of the package on purpose.
+// ignore_for_file: implementation_imports
+
 import 'dart:async';
+import 'dart:ffi';
 import 'dart:typed_data';
 
 import 'package:aud_midi_android/aud_midi_android.dart';
+import 'package:aud_midi_android/src/jni/midi_android_jni_bindings.g.dart'
+    show AudMidiContext, AudMidiLoopbackService, AudMidiNativeTap;
+import 'package:aud_midi_android/src/native/aud_midi_android_bindings.g.dart'
+    as native;
 import 'package:aud_midi_core/aud_midi_core.dart';
 import 'package:aud_midi_standard/aud_midi_standard.dart';
+import 'package:ffi/ffi.dart';
+import 'package:jni/jni.dart';
 
 /// Runs the checks of the example against the loopback devices declared in
 /// the manifest and returns the report, one line per entry; [log] gets the
@@ -39,12 +49,15 @@ Future<List<String>> runLoopbackReport({
       'scheduled=${port.capabilities.scheduledSend}',
     );
   }
+  await _check(report, 'native tap library', _nativeTapLibrary);
+  await _check(report, 'native taps', () => _nativeTaps(backend, host));
   await _check(report, 'byte loopback', () => _byteLoopback(backend, host));
   await _check(report, 'UMP loopback', () => _umpLoopback(backend, host));
   await _check(report, 'virtual ports', () => _virtualPorts(backend, host));
   await _check(report, 'bluetooth', () => _bluetooth(backend));
   await _check(report, 'nsd', _advertise);
   await _check(report, 'multicast lock', _multicastLock);
+  await _check(report, 'native tap gone', () => _nativeTapGone(backend, host));
   report.add('diagnostics: ${host.diagnostics}');
   await backend.stop();
   report.add('stopped');
@@ -134,6 +147,237 @@ Future<void> _check(
     report.add('  failed: $error');
   }
 }
+
+/// The loading spike of ticket 26: can the Java shim load the library the
+/// build hook built, and does Dart reach it through its code asset?
+Future<List<String>> _nativeTapLibrary() async {
+  final loaded = AudMidiNativeTap.load();
+  final error = AudMidiNativeTap.loadError()?.toDartString(
+    releaseOriginal: true,
+  );
+  return [
+    'System.loadLibrary("aud_midi_android") from Java: $loaded'
+        '${error == null ? '' : ' ($error)'}',
+    'Dart code asset: ${native.aud_midi_android_tap_count()} taps, '
+        'now ${native.aud_midi_android_now_ns()} ns',
+  ];
+}
+
+// #############################################################################
+/// The probe tap of the native tap library, read from Dart.
+final class _Probe {
+  _Probe()
+    : pointer = native.aud_midi_android_probe_create(),
+      _values = calloc<Int64>(native.AUD_MIDI_ANDROID_PROBE_VALUES);
+
+  final Pointer<native.AudMidiAndroidProbe> pointer;
+  final Pointer<Int64> _values;
+
+  MidiNativeTap get tap => MidiNativeTap(
+    function: native.aud_midi_android_probe_function().address,
+    user: pointer.address,
+  );
+
+  /// UMP calls, byte calls, gone calls, words, bytes, last time, sum,
+  /// first, overlaps, min delay.
+  List<int> read() {
+    native.aud_midi_android_probe_read(
+      pointer,
+      _values,
+      native.AUD_MIDI_ANDROID_PROBE_VALUES,
+    );
+    return _values.asTypedList(native.AUD_MIDI_ANDROID_PROBE_VALUES).toList();
+  }
+
+  int get umpCalls => read()[0];
+  int get byteCalls => read()[1];
+  int get goneCalls => read()[2];
+  int get words => read()[3];
+  int get bytes => read()[4];
+  int get lastTimeNs => read()[5];
+  int get sum => read()[6];
+  int get overlaps => read()[8];
+  int get minDelayNs => read()[9];
+
+  void free() {
+    native.aud_midi_android_probe_free(pointer);
+    calloc.free(_values);
+  }
+}
+
+/// Native taps on the loopback inputs: the data reach the probe on the MIDI
+/// thread without a Dart listener on the port, bytes on the MIDI 1.0 loop,
+/// complete packets on the UMP loop, stamped with System.nanoTime().
+Future<List<String>> _nativeTaps(
+  AndroidMidiBackend backend,
+  ReportHost host,
+) async {
+  final input = _port(backend, 'loop out', MidiDirection.input);
+  final output = _port(backend, 'loop in', MidiDirection.output);
+  final umpInput = _port(backend, 'ump loop', MidiDirection.input);
+  final umpOutput = _port(backend, 'ump loop', MidiDirection.output);
+  if (input == null ||
+      output == null ||
+      umpInput == null ||
+      umpOutput == null) {
+    return ['loopback devices not found'];
+  }
+  final lines = <String>[];
+  final probe = _Probe();
+  final umpProbe = _Probe();
+  lines.add(
+    'supportsNativeTap: in ${backend.supportsNativeTap(input.id)}, '
+    'out ${backend.supportsNativeTap(output.id)}',
+  );
+  await backend.attachNativeTap(input.id, probe.tap);
+  await backend.attachNativeTap(umpInput.id, umpProbe.tap);
+  await backend.openPort(output.id);
+  await backend.openPort(umpOutput.id);
+  final messages = [
+    MidiBytes.fromHex('90 3c 64'),
+    MidiBytes.fromHex('b0 07 7f'),
+    MidiBytes.fromHex('80 3c 00'),
+  ];
+  final sendTime = platformNowNs();
+  for (final message in messages) {
+    await backend.send(
+      output.id,
+      MidiBytesPacket(bytes: message, time: host.clock.now()),
+    );
+  }
+  final sent = [for (final message in messages) ...message.bytes];
+  await host.waitFor(() => probe.bytes >= sent.length);
+  final sum = sent.fold<int>(0, (a, b) => a + b);
+  lines.add(
+    'bytes: ${probe.byteCalls} calls, ${probe.bytes} bytes '
+    '(sent ${sent.length}), sum ok: ${probe.sum == sum}, '
+    'overlaps ${probe.overlaps}',
+  );
+  lines.add(
+    'bytes: last stamp minus send time ${(probe.lastTimeNs - sendTime) ~/ 1000} us, '
+    'min stamp to tap delay ${probe.minDelayNs ~/ 1000} us (CLOCK_MONOTONIC)',
+  );
+  final words = [
+    [0x40903c00, 0xc0000000],
+    [0x20903c64],
+    [0xf0000101, 0x0000001f, 0, 0],
+  ];
+  for (final packet in words) {
+    await backend.send(
+      umpOutput.id,
+      MidiUmpPacket(words: packet, time: host.clock.now()),
+    );
+  }
+  final wordCount = words.fold<int>(0, (a, b) => a + b.length);
+  await host.waitFor(() => umpProbe.words >= wordCount);
+  final wordSum = [for (final p in words) ...p].fold<int>(0, (a, b) => a + b);
+  lines.add(
+    'ump: ${umpProbe.umpCalls} calls, ${umpProbe.words} words '
+    '(sent $wordCount), sum ok: ${umpProbe.sum == wordSum}, '
+    'min stamp to tap delay ${umpProbe.minDelayNs ~/ 1000} us',
+  );
+  // No Dart listener: nothing reached the host.
+  lines.add(
+    'packets at the Dart host while only tapped: '
+    '${(host.packets[input.id] ?? const []).length}',
+  );
+  // Detach under traffic: no call after the detach returned.
+  var sending = true;
+  final burst = () async {
+    while (sending) {
+      await backend.send(
+        output.id,
+        MidiBytesPacket(bytes: MidiBytes.fromHex('f8'), time: host.clock.now()),
+      );
+      await Future<void>.delayed(Duration.zero);
+    }
+  }();
+  await Future<void>.delayed(const Duration(milliseconds: 50));
+  await backend.detachNativeTap(input.id);
+  final afterDetach = probe.byteCalls;
+  await Future<void>.delayed(const Duration(milliseconds: 100));
+  sending = false;
+  await burst;
+  lines.add(
+    'detach under traffic: ${probe.byteCalls == afterDetach ? 'no' : 'a'} '
+    'call after the detach returned ($afterDetach calls)',
+  );
+  await backend.detachNativeTap(umpInput.id);
+  // The loopback device still echoes the burst: let it drain before the
+  // next check opens the ports.
+  await Future<void>.delayed(const Duration(milliseconds: 500));
+  await backend.closePort(output.id);
+  await backend.closePort(umpOutput.id);
+  await backend.closePort(input.id);
+  await backend.closePort(umpInput.id);
+  await Future<void>.delayed(const Duration(milliseconds: 500));
+  host.packets.remove(input.id);
+  host.packets.remove(umpInput.id);
+  lines.add('slots after detach: ${native.aud_midi_android_tap_count()}');
+  probe.free();
+  umpProbe.free();
+  return lines;
+}
+
+/// GONE from the device callback: the app disables its loopback service
+/// while a tap is attached to its input, which unplugs the device.
+Future<List<String>> _nativeTapGone(
+  AndroidMidiBackend backend,
+  ReportHost host,
+) async {
+  final input = _port(backend, 'loop out', MidiDirection.input);
+  if (input == null) return ['loopback device not found'];
+  final probe = _Probe();
+  await backend.attachNativeTap(input.id, probe.tap);
+  final context = AudMidiContext.get()!;
+  _trace?.call('  waiting for gone: disabling AudMidiLoopbackService');
+  final started = host.clock.now();
+  final disabledAt = platformNowNs();
+  AudMidiLoopbackService.setEnabled(context, false);
+  await host.waitFor(
+    () => probe.goneCalls >= 1,
+    timeout: const Duration(seconds: 40),
+  );
+  final gone = probe.goneCalls;
+  final goneAt = probe.lastTimeNs;
+  // The removal reaches Dart later; then the port is unknown.
+  await host.waitFor(
+    () => host.events.any((e) => e is MidiPortRemoved && e.port.id == input.id),
+    timeout: const Duration(seconds: 10),
+  );
+  final removedAt = platformNowNs();
+  String detach;
+  try {
+    await backend.detachNativeTap(input.id);
+    detach = 'ok';
+  } on MidiPortGone catch (error) {
+    detach = '$error';
+  }
+  final lines = [
+    'gone calls: $gone after ${host.clock.now().difference(started).inMilliseconds} ms',
+    if (gone > 0)
+      'gone ${(goneAt - disabledAt) ~/ 1000000} ms after the disable, Dart '
+          'saw the removal ${(removedAt - goneAt) ~/ 1000000} ms after the '
+          'gone call',
+    'detach afterwards: $detach',
+    'slots: ${native.aud_midi_android_tap_count()}',
+  ];
+  probe.free();
+  AudMidiLoopbackService.setEnabled(context, true);
+  context.release();
+  await host.waitFor(
+    () =>
+        host.events.any((e) => e is MidiPortAdded && e.port.name == 'loop out'),
+    timeout: const Duration(seconds: 10),
+  );
+  lines.add(
+    're-enabled: ${_port(backend, 'loop out', MidiDirection.input)?.id}',
+  );
+  return lines;
+}
+
+/// The time of CLOCK_MONOTONIC in ns, the clock of the tap stamps.
+int platformNowNs() => native.aud_midi_android_now_ns();
 
 Future<List<String>> _byteLoopback(
   AndroidMidiBackend backend,

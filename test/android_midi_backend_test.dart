@@ -162,11 +162,13 @@ void main() {
         final scanner = _FakeScanner();
         await start(scanner: scanner);
         await backend.openPort(usbIn);
+        await backend.openPort(usbOut);
         await backend.openPort(ownIn);
         platform.granted.add('android.permission.BLUETOOTH_SCAN');
         unawaited(backend.bluetooth!.scan().drain<void>());
         await backend.stop();
         expect(usbDevice.receivers[0]!.closed, isTrue);
+        expect(usbDevice.senders[0]!.closed, isTrue);
         expect(
           platform.virtualInputs[('com.example.Service', 0)]!.closed,
           isTrue,
@@ -597,6 +599,145 @@ void main() {
       });
     });
 
+    group('supportsNativeTap, attachNativeTap, detachNativeTap', () {
+      const tap = MidiNativeTap(function: 0x100, user: 0x200);
+
+      test('open the port for the tap and close it after the detach', () async {
+        await start();
+        expect(backend.supportsNativeTap(usbIn), isTrue);
+        expect(backend.supportsNativeTap(usbOut), isFalse);
+        expect(
+          backend.supportsNativeTap(const MidiPortId('android:x')),
+          isFalse,
+        );
+        await backend.attachNativeTap(usbIn, tap);
+        final receiver = usbDevice.receivers[0]!;
+        expect(receiver.tapCalls, ['attach 256 512 ump=false']);
+        expect(receiver.nativeTap, tap);
+        await backend.closePort(usbIn);
+        expect(receiver.closed, isFalse);
+        await backend.detachNativeTap(usbIn);
+        await backend.detachNativeTap(usbIn);
+        expect(receiver.tapCalls, ['attach 256 512 ump=false', 'detach']);
+        expect(receiver.closed, isTrue);
+        await Future<void>.delayed(Duration.zero);
+        expect(usbDevice.closes, 1);
+      });
+
+      test('keep a port a listener opened', () async {
+        await start();
+        await backend.openPort(umpIn);
+        await backend.attachNativeTap(umpIn, tap);
+        final receiver = umpDevice.receivers[0]!;
+        expect(receiver.tapCalls, ['attach 256 512 ump=true']);
+        await backend.detachNativeTap(umpIn);
+        expect(receiver.closed, isFalse);
+        await backend.closePort(umpIn);
+        expect(receiver.closed, isTrue);
+      });
+
+      test('keep a port a listener opens after the tap', () async {
+        await start();
+        await backend.attachNativeTap(usbIn, tap);
+        await backend.openPort(usbIn);
+        await backend.detachNativeTap(usbIn);
+        final receiver = usbDevice.receivers[0]!;
+        expect(receiver.closed, isFalse);
+        await backend.closePort(usbIn);
+        expect(receiver.closed, isTrue);
+      });
+
+      test('throw for unknown ports, outputs and a second tap', () async {
+        await start();
+        const unknown = MidiPortId('android:x');
+        await expectLater(
+          backend.attachNativeTap(unknown, tap),
+          throwsA(isA<MidiPortGone>()),
+        );
+        await expectLater(
+          backend.detachNativeTap(unknown),
+          throwsA(isA<MidiPortGone>()),
+        );
+        await expectLater(
+          backend.attachNativeTap(usbOut, tap),
+          throwsA(isA<ArgumentError>()),
+        );
+        await backend.attachNativeTap(usbIn, tap);
+        await expectLater(
+          backend.attachNativeTap(usbIn, tap),
+          throwsA(isA<StateError>()),
+        );
+        expect(() => backend.attachNativeTap(usbIn, tap), throwsStateError);
+      });
+
+      test('throw what the receiver throws and keep the port open', () async {
+        await start();
+        await backend.openPort(usbIn);
+        const error = MidiNativeError(api: 'tap', code: 1);
+        usbDevice.receivers[0]!.attachError = error;
+        await expectLater(
+          backend.attachNativeTap(usbIn, tap),
+          throwsA(same(error)),
+        );
+        expect(usbDevice.receivers[0]!.closed, isFalse);
+        await backend.detachNativeTap(usbIn);
+      });
+
+      test('race a device that leaves while the port opens', () async {
+        await start();
+        final opening = backend.attachNativeTap(usbIn, tap);
+        platform.removed!(7);
+        await expectLater(opening, throwsA(isA<MidiPortGone>()));
+      });
+
+      test('throw a StateError before start', () {
+        backend = AndroidMidiBackend(platform: _FakePlatform());
+        expect(() => backend.attachNativeTap(usbIn, tap), throwsStateError);
+      });
+
+      test('detach with the receiver of a removed device', () async {
+        await start();
+        await backend.attachNativeTap(usbIn, tap);
+        platform.removed!(7);
+        final receiver = usbDevice.receivers[0]!;
+        expect(receiver.tapCalls, ['attach 256 512 ump=false', 'detach']);
+        expect(receiver.closed, isTrue);
+        await expectLater(
+          backend.detachNativeTap(usbIn),
+          throwsA(isA<MidiPortGone>()),
+        );
+      });
+
+      test('drop the data of a port open for its tap only', () async {
+        await start();
+        await backend.attachNativeTap(usbIn, tap);
+        final receiver = usbDevice.receivers[0]!;
+        receiver.push(
+          drained([
+            (5, [0xf8]),
+          ]),
+        );
+        expect(host.packets, isEmpty);
+        await backend.openPort(usbIn);
+        receiver.push(
+          drained([
+            (5, [0xf8]),
+          ]),
+        );
+        expect(host.packets, hasLength(1));
+      });
+
+      test('detach on stop', () async {
+        await start();
+        await backend.attachNativeTap(ownIn, tap);
+        await backend.stop();
+        expect(platform.virtualInputs.values.single.tapCalls, [
+          'attach 256 512 ump=false',
+          'detach',
+        ]);
+      });
+    });
+
     group('hotplug', () {
       test('reports added devices and measures the clock again', () async {
         await start(devices: const []);
@@ -998,7 +1139,9 @@ final class _FakeReceiver implements MidiAndroidReceiver {
 
   final void Function() onData;
   final List<Uint8List> queue = [];
+  final List<String> tapCalls = [];
   bool closed = false;
+  Object? attachError;
 
   void push(Uint8List data) {
     queue.add(data);
@@ -1009,7 +1152,27 @@ final class _FakeReceiver implements MidiAndroidReceiver {
   Uint8List? drain() => queue.isEmpty ? null : queue.removeAt(0);
 
   @override
-  void close() => closed = true;
+  void attachNativeTap(MidiNativeTap tap, {required bool ump}) {
+    if (attachError case final error?) throw error;
+    tapCalls.add('attach ${tap.function} ${tap.user} ump=$ump');
+    nativeTap = tap;
+  }
+
+  @override
+  void detachNativeTap() {
+    if (nativeTap == null) return;
+    tapCalls.add('detach');
+    nativeTap = null;
+  }
+
+  @override
+  MidiNativeTap? nativeTap;
+
+  @override
+  void close() {
+    detachNativeTap();
+    closed = true;
+  }
 }
 
 // #############################################################################
