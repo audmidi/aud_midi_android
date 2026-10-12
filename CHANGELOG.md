@@ -23,14 +23,24 @@
 - Add review fixes of ticket 26
 
 - README.de.md mirrors the native tap additions of README.md
+
 - Remove the unused AudMidiNativeTap.setLoaded and aud_midi_android_register_natives
+
 - MidiAndroidReceiver.setListening: a port open for its tap only copies nothing through Java and Dart
+
 - test/native/aud_midi_android_tap_test.dart runs scripts/test-native.js under the sanitizers
+
 - scripts/check-notices.js as an ES module like the other scripts
+
 - AudMidiReceiver.setNativeTap: registerTap and unregisterTap
+
 - aud_midi_android.h: PARAM_ERROR for a NULL function
+
 - test-native.js: the asan build no longer shadows main
+
 - aud_midi_core ^0.2.0
+
+- Add independent constraints on the aud_midi packages
 
 ## 0.1.0 - 2026-10-07
 
