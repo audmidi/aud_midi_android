@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Removed
+
+- Remove publish_to none from pubspec.yaml
+
 ## 0.1.0 - 2026-10-07
 
 ### Added
