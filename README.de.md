@@ -11,6 +11,7 @@ Teil der aud_midi-Familie, siehe [aud_midi](https://github.com/audmidi/aud_midi)
 - MIDI-1.0-Bytestrom-Geräte und ab API 33 Universal MIDI Packets
 - Android-Zeitstempel beim Empfang, AMidi mit Zeitstempeln beim Senden
 - Java-Shim für die abstrakten Callback-Klassen, kein MethodChannel
+- Native Taps: ein C-Konsument, über JNI auf dem MIDI-Thread aufgerufen
 - Eigene virtuelle Geräte der App: `MidiDeviceService`, `MidiUmpDeviceService`
 - `NsdManager`-Ankündigung und Multicast-Lock für Netzwerk-Sessions
 - BLE-Peripheral über BluetoothGattServer
@@ -46,6 +47,20 @@ Teil der aud_midi-Familie, siehe [aud_midi](https://github.com/audmidi/aud_midi)
 - Hotplug: `AudMidiDeviceCallback` je Transport → hinzugefügte, entfernte
   und geänderte Ports; die offenen Ports eines entfernten Geräts werden
   geschlossen.
+- Native Taps (`MidiNativeTapBackend` aus aud_midi_core): `attachNativeTap`
+  öffnet den Port bei Bedarf und belegt einen Slot der nativen
+  Tap-Bibliothek (`src/aud_midi_android.c`, gebaut von `hook/build.dart`);
+  der Java-Empfänger reicht jedes Stück über JNI auf dem MIDI-Thread an sie
+  weiter, in einen begrenzten Stack-Puffer kopiert, mit dem
+  `System.nanoTime()`-Stempel. Ein MIDI-1.0-Port bekommt die Bytes, ein
+  UMP-Port die vollständigen Pakete in Host-Reihenfolge (die Bibliothek
+  setzt die Wörter über Stücke hinweg zusammen). `AudMidiDeviceCallback`
+  meldet `gone` an die Taps eines entfernten Geräts, bevor Dart davon
+  erfährt; das Backend löst sie dann mit dem Port. Ein Tap hält den Port
+  ohne Dart-Listener offen, und ein nur für seinen Tap offener Port kopiert
+  nichts durch Java und Dart; `detachNativeTap` kehrt zurück, nachdem der
+  letzte Aufruf des Taps zurückgekehrt ist, und gibt nie einen Slot frei,
+  den ein Aufruf noch berühren kann (ein Timeout leakt ihn und loggt).
 - `virtualPorts` (statisch): die Ports der eigenen `AudMidiDeviceService`
   und `AudMidiUmpDeviceService` (oder Unterklassen) aus dem Manifest,
   gelistet mit `isOwn`. `create(spec)` gibt einen deklarierten Port aus,
@@ -82,6 +97,10 @@ Release-Build (R8):
 | `NsdManager`, Multicast-Lock | `_apple-midi._udp` angemeldet und abgemeldet; Lock gehalten |
 | `MidiEngine` über `AndroidMidiBackend` | typisierte Nachrichten unverändert; eine in Software geplante Note 1,5–1,9 ms nach Fälligkeit; ein MIDI-1.0-Note-On an einen MIDI-2.0-Port kommt als MIDI 2.0 an |
 | Release-Build | R8 behält alle Shim-Klassen; gleicher Bericht |
+| `System.loadLibrary("aud_midi_android")` | Flutter packt die Bibliothek des Build-Hooks unter `lib/<abi>/`, Java lädt sie, Dart erreicht dieselbe Datei als Code-Asset |
+| Nativer Tap auf den Loopbacks | Bytes und UMP-Pakete erreichen den Probe-Tap mit `CLOCK_MONOTONIC`-Stempeln (Stempel bis Tap 0,4–1 ms), nichts bei Dart ohne Listener |
+| Tap unter einem Burst gelöst | kein Aufruf, nachdem das Lösen zurückgekehrt ist |
+| `gone` | aus dem Geräte-Callback 1,2 s nach dem Abschalten des Loopback-Dienstes, 67 ms bevor Dart das Entfernen sah |
 
 Nicht verifiziert: USB-Geräte und echte BLE-MIDI-Peripheriegeräte (keine
 Hardware), API-Level unter 33 (kein UMP) und unter 29 (Senden nur über
@@ -108,8 +127,9 @@ dart pub add aud_midi_android
 ```
 
 Das Paket ist ein Android-Plugin ohne Flutter-Abhängigkeit: Flutter baut
-den Java-Shim in die App, R8 behält ihn über die `consumer-rules.pro` des
-Shims. `minSdk` 24; AMidi wird ab API 29 genutzt, UMP-Geräte erscheinen ab
+den Java-Shim in die App und die native Tap-Bibliothek über den Build-Hook
+des Pakets (`hook/build.dart`, NDK), R8 behält den Shim über die
+`consumer-rules.pro`. `minSdk` 24; AMidi wird ab API 29 genutzt, UMP-Geräte erscheinen ab
 API 33.
 
 Die App deklariert in `AndroidManifest.xml`:
@@ -214,7 +234,15 @@ NDK="$ANDROID_SDK_ROOT/ndk/28.2.13676358"
 SYSROOT="$NDK/toolchains/llvm/prebuilt/darwin-x86_64/sysroot"
 dart run ffigen --config ffigen.yaml \
   --compiler-opts "--target=aarch64-linux-android33 --sysroot=$SYSROOT"
+
+# ffigen: die native Tap-Bibliothek
+dart run ffigen --config ffigen_tap.yaml
 ```
+
+Die native Tap-Bibliothek hat einen Test auf dem Entwicklungsrechner,
+`node scripts/test-native.js`, unter ASan/UBSan, ThreadSanitizer und, mit
+LLVM aus Homebrew, RealtimeSanitizer; `node scripts/check-notices.js` prüft
+die Lizenz-Header und `NOTICES.md`.
 
 Beide nutzen das Dart des Flutter-SDK (package:jni braucht es) und
 erzeugen dieselben Dateien erneut.
@@ -229,6 +257,10 @@ erzeugen dieselben Dateien erneut.
   die an den Port des Isolates posten und zurückkehren.
 - Empfang: MIDI-Thread → `AudMidiReceiver.onSend` kopiert → ein Signal →
   das Isolate leert den Puffer → Dekodieren → Port-Pakete mit Zeiten.
+- Native Taps: MIDI-Thread → `AudMidiReceiver.onSend` →
+  `AudMidiNativeTap.send` (JNI) → der Slot der Tap-Bibliothek → der
+  C-Konsument; `AudMidiDeviceCallback.onDeviceRemoved` →
+  `AudMidiNativeTap.gone`.
 - Senden: Paketzeit → `CLOCK_MONOTONIC` über den Clock-Mapper → AMidi oder
   `MidiInputPort` mit diesem Zeitstempel.
 

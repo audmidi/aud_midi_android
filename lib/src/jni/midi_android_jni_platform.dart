@@ -22,6 +22,7 @@ import '../amidi/midi_android_amidi.dart';
 import '../amidi/midi_android_amidi_bindings.g.dart' show AMidiDevice;
 import '../clock/midi_android_monotonic_clock.dart';
 import '../logic/midi_android_error_codes.dart';
+import '../native/aud_midi_android_bindings.g.dart' as native;
 import '../platform/midi_android_ble_scan_result.dart';
 import '../platform/midi_android_ble_scanner.dart';
 import '../platform/midi_android_device.dart';
@@ -412,7 +413,12 @@ final class _JniDevice implements MidiAndroidDevice {
     }
     if (outputPort == null) return null;
     final receiver = AudMidiReceiver(AudMidiReceiver.DEFAULT_CAPACITY);
-    final result = _data.attach(receiver, onData: onData, port: outputPort);
+    final result = _data.attach(
+      receiver,
+      onData: onData,
+      port: outputPort,
+      deviceId: description.id,
+    );
     outputPort.connect(receiver);
     return result;
   }
@@ -569,13 +575,21 @@ final class _JniVirtualSender implements MidiAndroidSender {
 // #############################################################################
 /// An `AudMidiReceiver` attached to the data listener, connected to an
 /// output port unless it belongs to an own virtual device.
+///
+/// A native tap takes a slot of the native tap library
+/// (`src/aud_midi_android.c`); the Java receiver hands every chunk to it on
+/// the MIDI thread, the device callback reports `gone` for the device
+/// [_deviceId].
 final class _JniReceiver implements MidiAndroidReceiver {
-  _JniReceiver(this._receiver, this._port, this._onClose);
+  _JniReceiver(this._receiver, this._port, this._deviceId, this._onClose);
 
   final AudMidiReceiver _receiver;
   final MidiOutputPort? _port;
+  final int _deviceId;
   final void Function() _onClose;
   bool _closed = false;
+  MidiNativeTap? _tap;
+  int _tapHandle = 0;
 
   @override
   Uint8List? drain() {
@@ -590,8 +604,53 @@ final class _JniReceiver implements MidiAndroidReceiver {
   }
 
   @override
+  void setListening(bool value) {
+    if (_closed) return;
+    _receiver.listening = value;
+  }
+
+  @override
+  void attachNativeTap(MidiNativeTap tap, {required bool ump}) {
+    if (_closed) throw StateError('The receiver is closed');
+    if (_tap != null) throw StateError('A native tap is attached already');
+    if (!AudMidiNativeTap.load()) {
+      throw const MidiNativeError(
+        api: 'System.loadLibrary(aud_midi_android)',
+        code: MidiAndroidErrorCodes.unavailable,
+      );
+    }
+    final handle = native.aud_midi_android_tap_attach(
+      Pointer.fromAddress(tap.function),
+      Pointer.fromAddress(tap.user),
+      ump ? 1 : 0,
+    );
+    if (handle <= 0) {
+      throw MidiNativeError(api: 'aud_midi_android_tap_attach', code: handle);
+    }
+    _tap = tap;
+    _tapHandle = handle;
+    _receiver.setNativeTap(handle, _deviceId);
+  }
+
+  @override
+  void detachNativeTap() {
+    final handle = _tapHandle;
+    if (handle == 0) return;
+    _tap = null;
+    _tapHandle = 0;
+    // No new call starts after this; the detach waits for the ones inside
+    // and leaks the slot with a log line when one does not return.
+    _receiver.setNativeTap(0, 0);
+    native.aud_midi_android_tap_detach(handle, _detachTimeoutMs);
+  }
+
+  @override
+  MidiNativeTap? get nativeTap => _tap;
+
+  @override
   void close() {
     if (_closed) return;
+    detachNativeTap();
     _closed = true;
     _receiver.setListener(null, 0);
     final port = _port;
@@ -608,6 +667,9 @@ final class _JniReceiver implements MidiAndroidReceiver {
     _receiver.release();
     _onClose();
   }
+
+  /// How long a detach waits for the calls in flight.
+  static const int _detachTimeoutMs = 1000;
 }
 
 // #############################################################################
@@ -622,11 +684,17 @@ final class _JniDataListener {
     AudMidiReceiver receiver, {
     required void Function() onData,
     MidiOutputPort? port,
+    int deviceId = 0,
   }) {
     final token = _nextToken++;
     _callbacks[token] = onData;
     receiver.setListener(_proxy, token);
-    return _JniReceiver(receiver, port, () => _callbacks.remove(token));
+    return _JniReceiver(
+      receiver,
+      port,
+      deviceId,
+      () => _callbacks.remove(token),
+    );
   }
 
   void dispose() {

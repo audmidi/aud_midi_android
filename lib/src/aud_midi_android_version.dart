@@ -9,4 +9,4 @@
 // coverage:ignore-file
 
 /// The version of the `aud_midi_android` package.
-const String audMidiAndroidVersion = '0.1.1';
+const String audMidiAndroidVersion = '0.2.0';

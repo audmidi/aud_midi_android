@@ -67,6 +67,8 @@ public final class AudMidiDeviceCallback extends MidiManager.DeviceCallback {
 
   @Override
   public void onDeviceRemoved(MidiDeviceInfo device) {
+    // The native taps of the device learn it first, without Dart.
+    AudMidiReceiver.deviceGone(device.getId());
     listener.onDeviceRemoved(device, transport);
   }
 
