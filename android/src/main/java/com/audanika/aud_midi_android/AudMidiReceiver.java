@@ -23,7 +23,9 @@ import java.util.Map;
  *
  * <p>With a native tap set ({@link #setNativeTap}), the MIDI thread first hands
  * every chunk to the native tap library ({@link AudMidiNativeTap}), with or
- * without a listener. {@link #deviceGone} tells the taps of a removed device.
+ * without a listener; {@link #setListening} false keeps the chunks from the
+ * buffer for a port open for its tap only. {@link #deviceGone} tells the taps
+ * of a removed device.
  */
 public final class AudMidiReceiver extends MidiReceiver {
   /** The default buffer size in bytes. */
@@ -39,6 +41,8 @@ public final class AudMidiReceiver extends MidiReceiver {
   private boolean signalPending;
   private AudMidiDataListener listener;
   private int token;
+  // Whether the chunks are copied for the listener; read on the MIDI thread.
+  private volatile boolean listening = true;
 
   // The handle of the native tap, 0 for none; read on the MIDI thread.
   private volatile long nativeTap;
@@ -66,31 +70,32 @@ public final class AudMidiReceiver extends MidiReceiver {
   }
 
   /**
+   * Whether the MIDI thread copies the chunks for the listener, true at first.
+   * False for a port that is open for its native tap only: the chunks reach
+   * the tap and nothing travels through Java and Dart. False discards the data
+   * buffered so far.
+   */
+  public void setListening(boolean value) {
+    synchronized (lock) {
+      listening = value;
+      if (!value) {
+        size = 0;
+        dropped = 0;
+      }
+    }
+  }
+
+  /**
    * Hands every later chunk to the native tap {@code handle} of the tap library
    * first; 0 stops it. {@code deviceId} is the device of the port, so that
    * {@link #deviceGone} finds the tap; 0 for a port without a device.
    */
   public void setNativeTap(long handle, int deviceId) {
     synchronized (TAPS) {
-      if (nativeTap != 0 && tapDevice != 0) {
-        List<AudMidiReceiver> receivers = TAPS.get(tapDevice);
-        if (receivers != null) {
-          receivers.remove(this);
-          if (receivers.isEmpty()) {
-            TAPS.remove(tapDevice);
-          }
-        }
-      }
+      unregisterTap();
       nativeTap = handle;
       tapDevice = handle != 0 ? deviceId : 0;
-      if (handle != 0 && deviceId != 0) {
-        List<AudMidiReceiver> receivers = TAPS.get(deviceId);
-        if (receivers == null) {
-          receivers = new ArrayList<>();
-          TAPS.put(deviceId, receivers);
-        }
-        receivers.add(this);
-      }
+      registerTap();
     }
   }
 
@@ -129,6 +134,9 @@ public final class AudMidiReceiver extends MidiReceiver {
     long tap = nativeTap;
     if (tap != 0) {
       AudMidiNativeTap.send(tap, msg, offset, count, time);
+    }
+    if (!listening) {
+      return;
     }
     AudMidiDataListener toSignal = null;
     int signalToken = 0;
@@ -175,6 +183,34 @@ public final class AudMidiReceiver extends MidiReceiver {
       size = 0;
       dropped = 0;
       return result;
+    }
+  }
+
+  // Lists this receiver under its device in TAPS; call with TAPS held.
+  private void registerTap() {
+    if (nativeTap == 0 || tapDevice == 0) {
+      return;
+    }
+    List<AudMidiReceiver> receivers = TAPS.get(tapDevice);
+    if (receivers == null) {
+      receivers = new ArrayList<>();
+      TAPS.put(tapDevice, receivers);
+    }
+    receivers.add(this);
+  }
+
+  // Removes this receiver from TAPS; call with TAPS held.
+  private void unregisterTap() {
+    if (nativeTap == 0 || tapDevice == 0) {
+      return;
+    }
+    List<AudMidiReceiver> receivers = TAPS.get(tapDevice);
+    if (receivers == null) {
+      return;
+    }
+    receivers.remove(this);
+    if (receivers.isEmpty()) {
+      TAPS.remove(tapDevice);
     }
   }
 

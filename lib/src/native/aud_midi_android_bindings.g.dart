@@ -56,7 +56,8 @@ external void aud_midi_android_probe_read(
 
 /// Takes a slot for [function] called with [user]; [ump] 1 for a UMP port
 /// (the bytes are assembled into words), 0 for a MIDI 1.0 port. Returns the
-/// handle (never 0), or AUD_MIDI_ANDROID_FULL_ERROR.
+/// handle (never 0), AUD_MIDI_ANDROID_PARAM_ERROR for a NULL [function], or
+/// AUD_MIDI_ANDROID_FULL_ERROR when every slot is taken.
 @ffi.Native<
   ffi.Int64 Function(
     AudMidiAndroidTapFunction,
@@ -88,7 +89,7 @@ external int aud_midi_android_tap_detach(int handle, int timeout_ms);
 external int aud_midi_android_tap_gone(int handle, int host_time_ns);
 
 /// Returns the number of calls of [handle] in flight right now, or -1 for a
-/// stale handle; for tests.
+/// handle that is not attached; for tests.
 @ffi.Native<ffi.Int32 Function(ffi.Int64)>(isLeaf: true)
 external int aud_midi_android_tap_in_flight(int handle);
 

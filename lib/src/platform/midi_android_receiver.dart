@@ -17,6 +17,12 @@ abstract interface class MidiAndroidReceiver {
   /// `AudMidiReceiver.drain()`, or null when nothing arrived.
   Uint8List? drain();
 
+  /// Lets the MIDI thread copy the chunks for [drain] ([value] true, the
+  /// initial state) or keeps them from the buffer (false): a port open for
+  /// its native tap only then copies nothing through Java and Dart. False
+  /// discards the data buffered so far.
+  void setListening(bool value);
+
   // ...........................................................................
   /// Calls [tap] on the MIDI thread with every chunk from now on, through
   /// the native tap library: with the bytes of a MIDI 1.0 port, with the

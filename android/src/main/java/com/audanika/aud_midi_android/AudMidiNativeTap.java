@@ -39,15 +39,6 @@ public final class AudMidiNativeTap {
     return loaded;
   }
 
-  /**
-   * Marks the library as loaded by other means, e.g. by Dart, after its native
-   * methods were registered.
-   */
-  public static synchronized void setLoaded() {
-    loaded = true;
-    loadError = null;
-  }
-
   /** Whether the library is loaded. */
   public static synchronized boolean isLoaded() {
     return loaded;

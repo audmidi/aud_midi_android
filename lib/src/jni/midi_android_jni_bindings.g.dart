@@ -24259,7 +24259,9 @@ final class $AudMidiDataListener$Type$
 ///
 ///With a native tap set (\#setNativeTap), the MIDI thread first hands
 ///every chunk to the native tap library (AudMidiNativeTap), with or
-///without a listener. \#deviceGone tells the taps of a removed device.
+///without a listener; \#setListening false keeps the chunks from the
+///buffer for a port open for its tap only. \#deviceGone tells the taps
+///of a removed device.
 extension type AudMidiReceiver._(jni$_.JObject _$this) implements MidiReceiver {
   static final _class = jni$_.JClass.forName(
     r'com/audanika/aud_midi_android/AudMidiReceiver',
@@ -24377,6 +24379,44 @@ extension AudMidiReceiver$$Methods on AudMidiReceiver {
       _id_setListener.pointer,
       _$value.pointer,
       token,
+    ).check();
+  }
+
+  static final _id_set$listening = AudMidiReceiver._class.instanceMethodId(
+    r'setListening',
+    r'(Z)V',
+  );
+
+  static final _set$listening =
+      jni$_.ProtectedJniExtensions.lookup<
+            jni$_.NativeFunction<
+              jni$_.JThrowablePtr Function(
+                jni$_.Pointer<jni$_.Void>,
+                jni$_.JMethodIDPtr,
+                jni$_.VarArgs<(jni$_.Int32,)>,
+              )
+            >
+          >('globalEnv_CallVoidMethod')
+          .asFunction<
+            jni$_.JThrowablePtr Function(
+              jni$_.Pointer<jni$_.Void>,
+              jni$_.JMethodIDPtr,
+              core$_.int,
+            )
+          >();
+
+  /// from: `public void setListening(boolean value)`
+  ///
+  /// Whether the MIDI thread copies the chunks for the listener, true at first.
+  ///False for a port that is open for its native tap only: the chunks reach
+  ///the tap and nothing travels through Java and Dart. False discards the data
+  ///buffered so far.
+  set listening(core$_.bool value) {
+    final _$$selfRef = reference;
+    _set$listening(
+      _$$selfRef.pointer,
+      _id_set$listening.pointer,
+      value ? 1 : 0,
     ).check();
   }
 
@@ -24590,33 +24630,6 @@ extension type AudMidiNativeTap._(jni$_.JObject _$this)
   static core$_.bool load() {
     final _$$classRef = _class.reference;
     return _load(_$$classRef.pointer, _id_load.pointer).boolean;
-  }
-
-  static final _id_setLoaded = _class.staticMethodId(r'setLoaded', r'()V');
-
-  static final _setLoaded =
-      jni$_.ProtectedJniExtensions.lookup<
-            jni$_.NativeFunction<
-              jni$_.JThrowablePtr Function(
-                jni$_.Pointer<jni$_.Void>,
-                jni$_.JMethodIDPtr,
-              )
-            >
-          >('globalEnv_CallStaticVoidMethod')
-          .asFunction<
-            jni$_.JThrowablePtr Function(
-              jni$_.Pointer<jni$_.Void>,
-              jni$_.JMethodIDPtr,
-            )
-          >();
-
-  /// from: `synchronized static public void setLoaded()`
-  ///
-  /// Marks the library as loaded by other means, e.g. by Dart, after its native
-  ///methods were registered.
-  static void setLoaded() {
-    final _$$classRef = _class.reference;
-    _setLoaded(_$$classRef.pointer, _id_setLoaded.pointer).check();
   }
 
   static final _id_get$isLoaded = _class.staticMethodId(r'isLoaded', r'()Z');

@@ -26,6 +26,17 @@ void main() {
       });
     });
 
+    group('setListening(value)', () {
+      test('switches the copy to Dart off and on', () {
+        final MidiAndroidReceiver receiver = _Receiver();
+        expect((receiver as _Receiver).listening, isTrue);
+        receiver.setListening(false);
+        expect(receiver.listening, isFalse);
+        receiver.setListening(true);
+        expect(receiver.listening, isTrue);
+      });
+    });
+
     group('attachNativeTap(tap, ump), detachNativeTap(), nativeTap', () {
       test('hold the tap of the port', () {
         final MidiAndroidReceiver receiver = _Receiver();
@@ -46,9 +57,13 @@ final class _Receiver implements MidiAndroidReceiver {
     Uint8List.fromList([0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 9, 0, 0, 0, 1, 0xf8]),
   ];
   bool closed = false;
+  bool listening = true;
 
   @override
   Uint8List? drain() => _queue.isEmpty ? null : _queue.removeAt(0);
+
+  @override
+  void setListening(bool value) => listening = value;
 
   @override
   void attachNativeTap(MidiNativeTap tap, {required bool ump}) =>

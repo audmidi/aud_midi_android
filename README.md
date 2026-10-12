@@ -54,7 +54,8 @@ Part of the aud_midi family, see [aud_midi](https://github.com/audmidi/aud_midi)
   library assembles the words across chunks). `AudMidiDeviceCallback`
   reports `gone` to the taps of a removed device before Dart learns of it;
   the backend then detaches them with the port. A tap keeps the port open
-  without Dart listeners; `detachNativeTap` returns after the last call
+  without Dart listeners, and a port open for its tap alone copies nothing
+  through Java and Dart; `detachNativeTap` returns after the last call
   of the tap returned and never frees a slot that a call may still touch
   (a timeout leaks it and logs).
 - `virtualPorts` (static): the ports of the app's own `AudMidiDeviceService`

@@ -11,9 +11,7 @@
 //
 // The names follow the JNI convention for the package
 // com.audanika.aud_midi_android, so that the Java VM resolves them once
-// System.loadLibrary("aud_midi_android") loaded this library;
-// aud_midi_android_register_natives registers them explicitly when the
-// library was loaded another way.
+// System.loadLibrary("aud_midi_android") loaded this library.
 
 #include <jni.h>
 
@@ -44,16 +42,4 @@ JNIEXPORT void JNICALL JNI_NAME(gone)(JNIEnv *env, jclass type,
                                       jlong handle) {
   (void)env, (void)type;
   aud_midi_android_tap_gone(handle, 0);
-}
-
-/// Registers the native methods with [type], the class AudMidiNativeTap,
-/// for a library the Java VM did not load itself. Returns JNI_OK or the
-/// JNI error.
-JNIEXPORT jint aud_midi_android_register_natives(JNIEnv *env, jclass type) {
-  static const JNINativeMethod methods[] = {
-      {"send", "(J[BIIJ)V", (void *)JNI_NAME(send)},
-      {"gone", "(J)V", (void *)JNI_NAME(gone)},
-  };
-  return (*env)->RegisterNatives(env, type, methods,
-                                 sizeof(methods) / sizeof(methods[0]));
 }

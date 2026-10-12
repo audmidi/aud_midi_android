@@ -45,7 +45,7 @@ extern "C" {
 /// The largest chunk the JNI glue hands to a tap in one call, in bytes.
 #define AUD_MIDI_ANDROID_TAP_CHUNK_BYTES 1024
 
-/// The error of an invalid handle.
+/// The error of an invalid handle or argument.
 #define AUD_MIDI_ANDROID_PARAM_ERROR -50
 
 /// The error of a detach whose wait for the calls in flight timed out; the
@@ -64,7 +64,8 @@ typedef void (*AudMidiAndroidTapFunction)(void *user, uint32_t kind,
 
 /// Takes a slot for [function] called with [user]; [ump] 1 for a UMP port
 /// (the bytes are assembled into words), 0 for a MIDI 1.0 port. Returns
-/// the handle (never 0), or AUD_MIDI_ANDROID_FULL_ERROR.
+/// the handle (never 0), AUD_MIDI_ANDROID_PARAM_ERROR for a NULL
+/// [function], or AUD_MIDI_ANDROID_FULL_ERROR when every slot is taken.
 int64_t aud_midi_android_tap_attach(AudMidiAndroidTapFunction function,
                                     void *user, int32_t ump);
 

@@ -604,6 +604,12 @@ final class _JniReceiver implements MidiAndroidReceiver {
   }
 
   @override
+  void setListening(bool value) {
+    if (_closed) return;
+    _receiver.listening = value;
+  }
+
+  @override
   void attachNativeTap(MidiNativeTap tap, {required bool ump}) {
     if (_closed) throw StateError('The receiver is closed');
     if (_tap != null) throw StateError('A native tap is attached already');

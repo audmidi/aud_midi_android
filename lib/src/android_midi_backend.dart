@@ -133,17 +133,25 @@ final class AndroidMidiBackend implements MidiBackend, MidiNativeTapBackend {
   @override
   Future<void> openPort(MidiPortId port) async {
     await _ensureOpen(port);
-    _inputs[port]?.isOpen = true;
+    final input = _inputs[port];
+    if (input == null) return;
+    input.isOpen = true;
+    input.receiver.setListening(true);
   }
 
-  /// Closes [port]; an input with a native tap stays open for the tap,
-  /// the device closes with its last port.
+  /// Closes [port]; an input with a native tap stays open for the tap
+  /// alone and copies nothing to Dart any more, the device closes with its
+  /// last port.
   @override
   Future<void> closePort(MidiPortId port) async {
     final input = _inputs[port];
     if (input != null) {
       input.isOpen = false;
-      if (input.tap == null) _closeInput(port);
+      if (input.tap == null) {
+        _closeInput(port);
+      } else {
+        input.receiver.setListening(false);
+      }
     }
     final output = _outputs.remove(port);
     if (output != null) {
@@ -158,7 +166,8 @@ final class AndroidMidiBackend implements MidiBackend, MidiNativeTapBackend {
   bool supportsNativeTap(MidiPortId port) =>
       _table.port(port)?.isInput ?? false;
 
-  /// Opens the input [port] when needed and attaches [tap] to its receiver.
+  /// Opens the input [port] when needed and attaches [tap] to its receiver;
+  /// a port open for the tap alone copies nothing to Dart.
   ///
   /// Throws [MidiPortGone] for an unknown port, an [ArgumentError] for an
   /// output, a [StateError] when a tap is attached already and a
@@ -175,6 +184,7 @@ final class AndroidMidiBackend implements MidiBackend, MidiNativeTapBackend {
     if (input.tap != null) throw StateError('$port has a tap already');
     input.receiver.attachNativeTap(tap, ump: input.ump);
     input.tap = tap;
+    if (!input.isOpen) input.receiver.setListening(false);
   }
 
   /// Detaches the tap of [port] after its last call; the port closes when
@@ -431,7 +441,8 @@ final class AndroidMidiBackend implements MidiBackend, MidiNativeTapBackend {
     final host = _host;
     if (input == null || host == null) return;
     final data = input.receiver.drain();
-    // A port open for its native tap only: the tap got the data already.
+    // A port open for its native tap only copies nothing, but a signal
+    // posted before the listening stopped may still arrive.
     if (data == null || !input.isOpen) return;
     _resyncIfDue();
     final MidiAndroidDrained drained;

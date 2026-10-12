@@ -158,12 +158,12 @@ function main() {
   const compiler = defaultCompiler();
   const leaks =
     process.platform === 'linux' ? 'detect_leaks=1' : 'detect_leaks=0';
-  const main = build(
+  const asan = build(
     sanitize ? 'asan' : 'plain',
     compiler,
     sanitize ? ['-std=c11', '-fsanitize=address,undefined'] : ['-std=c11'],
   );
-  run(sanitize ? 'asan+ubsan' : 'plain', main, {
+  run(sanitize ? 'asan+ubsan' : 'plain', asan, {
     UBSAN_OPTIONS: 'print_stacktrace=1:halt_on_error=1',
     ASAN_OPTIONS: leaks,
   });

@@ -708,6 +708,35 @@ void main() {
         );
       });
 
+      test('copy nothing to Dart for a port open for its tap only', () async {
+        await start();
+        await backend.attachNativeTap(usbIn, tap);
+        final receiver = usbDevice.receivers[0]!;
+        expect(receiver.listening, isFalse);
+        await backend.openPort(usbIn);
+        expect(receiver.listening, isTrue);
+        await backend.closePort(usbIn);
+        expect(receiver.listening, isFalse);
+        expect(receiver.closed, isFalse);
+        await backend.detachNativeTap(usbIn);
+        expect(receiver.closed, isTrue);
+      });
+
+      test(
+        'keep copying for a port a listener opened before the tap',
+        () async {
+          await start();
+          await backend.openPort(umpIn);
+          await backend.attachNativeTap(umpIn, tap);
+          final receiver = umpDevice.receivers[0]!;
+          expect(receiver.listening, isTrue);
+          await backend.detachNativeTap(umpIn);
+          await backend.closePort(umpIn);
+          expect(receiver.listening, isTrue);
+          expect(receiver.closed, isTrue);
+        },
+      );
+
       test('drop the data of a port open for its tap only', () async {
         await start();
         await backend.attachNativeTap(usbIn, tap);
@@ -1141,6 +1170,7 @@ final class _FakeReceiver implements MidiAndroidReceiver {
   final List<Uint8List> queue = [];
   final List<String> tapCalls = [];
   bool closed = false;
+  bool listening = true;
   Object? attachError;
 
   void push(Uint8List data) {
@@ -1150,6 +1180,9 @@ final class _FakeReceiver implements MidiAndroidReceiver {
 
   @override
   Uint8List? drain() => queue.isEmpty ? null : queue.removeAt(0);
+
+  @override
+  void setListening(bool value) => listening = value;
 
   @override
   void attachNativeTap(MidiNativeTap tap, {required bool ump}) {
