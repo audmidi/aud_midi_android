@@ -20,8 +20,8 @@
 // Usage: node scripts/check-notices.js [repoDir]
 // Exits with 1 and the list of problems when the convention is broken.
 
-import { existsSync, readdirSync, readFileSync, statSync } from 'fs';
-import { join, relative } from 'path';
+const { existsSync, readdirSync, readFileSync, statSync } = require('fs');
+const { join, relative } = require('path');
 
 const permissive = [
   'MIT',
@@ -77,7 +77,7 @@ function componentRows(notices) {
     .filter((cells) => cells.length >= 3 && cells[0] !== 'Component');
 }
 
-export function checkNotices(repoDir) {
+function checkNotices(repoDir) {
   const problems = [];
   const noticesPath = join(repoDir, 'NOTICES.md');
   if (!existsSync(noticesPath)) {
@@ -134,6 +134,8 @@ function main() {
   process.exit(1);
 }
 
-if (process.argv[1] && import.meta.url.endsWith(process.argv[1].split('/').pop())) {
+module.exports = { checkNotices };
+
+if (require.main === module) {
   main();
 }

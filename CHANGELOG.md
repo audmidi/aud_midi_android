@@ -7,8 +7,14 @@
 - Add native taps through JNI on Android
 
 - A C library built by a build hook and loaded by Java with System.loadLibrary; the receiver calls the tap with the bytes or UMP words and System.nanoTime
+
 - GONE from the device callback; a detach returns after the last call; the loopback service can be switched off for hot-plug tests
+
 - AndroidMidiBackend implements MidiNativeTapBackend; native tests under the sanitizers; NOTICES and the notices check
+
+- Add the CommonJS notices check
+
+- scripts/check-notices.js runs on older Node
 
 ## 0.1.0 - 2026-10-07
 
