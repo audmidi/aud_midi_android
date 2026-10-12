@@ -16,6 +16,10 @@
 
 - scripts/check-notices.js runs on older Node
 
+- Add aud_midi_standard from pub.dev to the example
+
+- The example resolves aud_midi_standard from pub.dev instead of a sibling checkout
+
 ## 0.1.0 - 2026-10-07
 
 ### Added
