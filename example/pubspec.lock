@@ -30,7 +30,7 @@ packages:
       path: "../../aud_midi_core"
       relative: true
     source: path
-    version: "0.1.0"
+    version: "0.1.1"
   aud_midi_standard:
     dependency: "direct main"
     description:
