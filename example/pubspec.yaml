@@ -1,6 +1,5 @@
 name: aud_midi_android_example
 description: "Loopback check of aud_midi_android on an Android device or emulator."
-publish_to: "none"
 version: 1.0.0+1
 
 environment:
