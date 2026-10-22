@@ -5,6 +5,9 @@
 ### Changed
 
 - Name files with / in check-notices.js
+- Name files with / in check-notices.js
+
+Messages of check-notices.js name files with / on Windows
 
 ## 0.2.0 - 2026-10-12
 
