@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Name files with / in check-notices.js
+
 ## 0.2.0 - 2026-10-12
 
 ### Added
@@ -43,6 +49,7 @@
 - Add independent constraints on the aud_midi packages
 
 - Add review fixes of ticket 26
+
 
 ## 0.1.1 - 2026-10-12
 
