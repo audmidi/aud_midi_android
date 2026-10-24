@@ -1,13 +1,11 @@
 # Changelog
 
-## Unreleased
+## 0.2.1 - 2026-10-24
 
 ### Changed
 
 - Name files with / in check-notices.js
 - Name files with / in check-notices.js
-
-Messages of check-notices.js name files with / on Windows
 
 ## 0.2.0 - 2026-10-12
 
@@ -52,7 +50,6 @@ Messages of check-notices.js name files with / on Windows
 - Add independent constraints on the aud_midi packages
 
 - Add review fixes of ticket 26
-
 
 ## 0.1.1 - 2026-10-12
 
