@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.1 - 2026-10-24
+
+### Changed
+
+- Name files with / in check-notices.js
+- Name files with / in check-notices.js
+
 ## 0.2.0 - 2026-10-12
 
 ### Added
