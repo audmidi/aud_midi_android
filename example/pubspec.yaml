@@ -3,22 +3,19 @@ description: "Loopback check of aud_midi_android on an Android device or emulato
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.12.2
+  sdk: ^3.13.0
+
+resolution: workspace
 
 dependencies:
   aud_midi_android:
     path: ../
-  aud_midi_core: any
-  aud_midi_standard: any
+  aud_midi_core: ^0.2.0
+  aud_midi_standard: ^0.3.0
   ffi: ^2.2.0
   flutter:
     sdk: flutter
-  jni: ^1.1.0
-
-# The siblings of the aud_midi family, checked out next to this package.
-dependency_overrides:
-  aud_midi_core:
-    path: ../../aud_midi_core
+  jni: ^1.1.1
 
 dev_dependencies:
   flutter_lints: ^6.0.0

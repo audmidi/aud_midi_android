@@ -593,10 +593,11 @@ extension MidiManager$$Methods on MidiManager {
     ).check();
   }
 
-  static final _id_registerDeviceCallback$1 = MidiManager._class.instanceMethodId(
-    r'registerDeviceCallback',
-    r'(ILjava/util/concurrent/Executor;Landroid/media/midi/MidiManager$DeviceCallback;)V',
-  );
+  static final _id_registerDeviceCallback$1 = MidiManager._class
+      .instanceMethodId(
+        r'registerDeviceCallback',
+        r'(ILjava/util/concurrent/Executor;Landroid/media/midi/MidiManager$DeviceCallback;)V',
+      );
 
   static final _registerDeviceCallback$1 =
       jni$_.ProtectedJniExtensions.lookup<
@@ -6908,10 +6909,9 @@ extension type Build._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JArray<jni$_.JString?>? get SUPPORTED_32_BIT_ABIS =>
       _id_SUPPORTED_32_BIT_ABIS.getNullable(
-            _class,
-            jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
-          )
-          as jni$_.JArray<jni$_.JString?>?;
+        _class,
+        jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
+      ) as jni$_.JArray<jni$_.JString?>?;
 
   static final _id_SUPPORTED_64_BIT_ABIS = _class.staticFieldId(
     r'SUPPORTED_64_BIT_ABIS',
@@ -6922,10 +6922,9 @@ extension type Build._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JArray<jni$_.JString?>? get SUPPORTED_64_BIT_ABIS =>
       _id_SUPPORTED_64_BIT_ABIS.getNullable(
-            _class,
-            jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
-          )
-          as jni$_.JArray<jni$_.JString?>?;
+        _class,
+        jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
+      ) as jni$_.JArray<jni$_.JString?>?;
 
   static final _id_SUPPORTED_ABIS = _class.staticFieldId(
     r'SUPPORTED_ABIS',
@@ -6936,10 +6935,9 @@ extension type Build._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JArray<jni$_.JString?>? get SUPPORTED_ABIS =>
       _id_SUPPORTED_ABIS.getNullable(
-            _class,
-            jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
-          )
-          as jni$_.JArray<jni$_.JString?>?;
+        _class,
+        jni$_.JArray.type<jni$_.JString?>(jni$_.JString.type),
+      ) as jni$_.JArray<jni$_.JString?>?;
 
   static final _id_TAGS = _class.staticFieldId(r'TAGS', r'Ljava/lang/String;');
 
@@ -7605,10 +7603,9 @@ extension type BluetoothAdapter._(jni$_.JObject _$this)
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get ACTION_CONNECTION_STATE_CHANGED =>
       _id_ACTION_CONNECTION_STATE_CHANGED.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_ACTION_DISCOVERY_FINISHED = _class.staticFieldId(
     r'ACTION_DISCOVERY_FINISHED',
@@ -7731,10 +7728,9 @@ extension type BluetoothAdapter._(jni$_.JObject _$this)
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get EXTRA_PREVIOUS_CONNECTION_STATE =>
       _id_EXTRA_PREVIOUS_CONNECTION_STATE.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_EXTRA_PREVIOUS_SCAN_MODE = _class.staticFieldId(
     r'EXTRA_PREVIOUS_SCAN_MODE',
@@ -9442,10 +9438,9 @@ extension type BluetoothDevice._(jni$_.JObject _$this)
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get ACTION_ACL_DISCONNECT_REQUESTED =>
       _id_ACTION_ACL_DISCONNECT_REQUESTED.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_ACTION_ALIAS_CHANGED = _class.staticFieldId(
     r'ACTION_ALIAS_CHANGED',
@@ -9673,10 +9668,9 @@ extension type BluetoothDevice._(jni$_.JObject _$this)
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get EXTRA_IS_COORDINATED_SET_MEMBER =>
       _id_EXTRA_IS_COORDINATED_SET_MEMBER.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_EXTRA_KEY_SIZE = _class.staticFieldId(
     r'EXTRA_KEY_SIZE',
@@ -11630,10 +11624,11 @@ extension ScanFilter$Builder$$Methods on ScanFilter$Builder {
     ).object<ScanFilter$Builder?>();
   }
 
-  static final _id_setServiceUuid$1 = ScanFilter$Builder._class.instanceMethodId(
-    r'setServiceUuid',
-    r'(Landroid/os/ParcelUuid;Landroid/os/ParcelUuid;)Landroid/bluetooth/le/ScanFilter$Builder;',
-  );
+  static final _id_setServiceUuid$1 = ScanFilter$Builder._class
+      .instanceMethodId(
+        r'setServiceUuid',
+        r'(Landroid/os/ParcelUuid;Landroid/os/ParcelUuid;)Landroid/bluetooth/le/ScanFilter$Builder;',
+      );
 
   static final _setServiceUuid$1 =
       jni$_.ProtectedJniExtensions.lookup<
@@ -16318,10 +16313,11 @@ extension NsdManager$$Methods on NsdManager {
     ).check();
   }
 
-  static final _id_registerServiceInfoCallback = NsdManager._class.instanceMethodId(
-    r'registerServiceInfoCallback',
-    r'(Landroid/net/nsd/NsdServiceInfo;Ljava/util/concurrent/Executor;Landroid/net/nsd/NsdManager$ServiceInfoCallback;)V',
-  );
+  static final _id_registerServiceInfoCallback = NsdManager._class
+      .instanceMethodId(
+        r'registerServiceInfoCallback',
+        r'(Landroid/net/nsd/NsdServiceInfo;Ljava/util/concurrent/Executor;Landroid/net/nsd/NsdManager$ServiceInfoCallback;)V',
+      );
 
   static final _registerServiceInfoCallback =
       jni$_.ProtectedJniExtensions.lookup<
@@ -17713,9 +17709,8 @@ final class $WifiManager$InterfaceCreationImpact$Type$
 
 /// from: `android.net.wifi.WifiManager$LocalOnlyConnectionFailureListener`
 extension type WifiManager$LocalOnlyConnectionFailureListener._(
-  jni$_.JObject _$this
-)
-    implements jni$_.JObject {
+  jni$_.JObject _$this,
+) implements jni$_.JObject {
   static final _class = jni$_.JClass.forName(
     r'android/net/wifi/WifiManager$LocalOnlyConnectionFailureListener',
   );
@@ -18390,9 +18385,8 @@ final class $WifiManager$ScanResultsCallback$Type$
 
 /// from: `android.net.wifi.WifiManager$SubsystemRestartTrackingCallback`
 extension type WifiManager$SubsystemRestartTrackingCallback._(
-  jni$_.JObject _$this
-)
-    implements jni$_.JObject {
+  jni$_.JObject _$this,
+) implements jni$_.JObject {
   static final _class = jni$_.JClass.forName(
     r'android/net/wifi/WifiManager$SubsystemRestartTrackingCallback',
   );
@@ -18480,9 +18474,8 @@ final class $WifiManager$SubsystemRestartTrackingCallback$Type$
 
 /// from: `android.net.wifi.WifiManager$SuggestionConnectionStatusListener`
 extension type WifiManager$SuggestionConnectionStatusListener._(
-  jni$_.JObject _$this
-)
-    implements jni$_.JObject {
+  jni$_.JObject _$this,
+) implements jni$_.JObject {
   static final _class = jni$_.JClass.forName(
     r'android/net/wifi/WifiManager$SuggestionConnectionStatusListener',
   );
@@ -18674,9 +18667,8 @@ final class $WifiManager$SuggestionConnectionStatusListener$Type$
 
 /// from: `android.net.wifi.WifiManager$SuggestionUserApprovalStatusListener`
 extension type WifiManager$SuggestionUserApprovalStatusListener._(
-  jni$_.JObject _$this
-)
-    implements jni$_.JObject {
+  jni$_.JObject _$this,
+) implements jni$_.JObject {
   static final _class = jni$_.JClass.forName(
     r'android/net/wifi/WifiManager$SuggestionUserApprovalStatusListener',
   );
@@ -19336,10 +19328,9 @@ extension type WifiManager._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get ACTION_REQUEST_SCAN_ALWAYS_AVAILABLE =>
       _id_ACTION_REQUEST_SCAN_ALWAYS_AVAILABLE.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION = _class
       .staticFieldId(
@@ -19351,10 +19342,9 @@ extension type WifiManager._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION =>
       _id_ACTION_WIFI_NETWORK_SUGGESTION_POST_CONNECTION.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_ACTION_WIFI_SCAN_AVAILABILITY_CHANGED = _class.staticFieldId(
     r'ACTION_WIFI_SCAN_AVAILABILITY_CHANGED',
@@ -19365,10 +19355,9 @@ extension type WifiManager._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get ACTION_WIFI_SCAN_AVAILABILITY_CHANGED =>
       _id_ACTION_WIFI_SCAN_AVAILABILITY_CHANGED.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_CHANNEL_DATA_KEY_FREQUENCY_MHZ = _class.staticFieldId(
     r'CHANNEL_DATA_KEY_FREQUENCY_MHZ',
@@ -19665,10 +19654,9 @@ extension type WifiManager._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get SUPPLICANT_CONNECTION_CHANGE_ACTION =>
       _id_SUPPLICANT_CONNECTION_CHANGE_ACTION.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_SUPPLICANT_STATE_CHANGED_ACTION = _class.staticFieldId(
     r'SUPPLICANT_STATE_CHANGED_ACTION',
@@ -19679,10 +19667,9 @@ extension type WifiManager._(jni$_.JObject _$this) implements jni$_.JObject {
   /// The returned object must be released after use, by calling the [release] method.
   static jni$_.JString? get SUPPLICANT_STATE_CHANGED_ACTION =>
       _id_SUPPLICANT_STATE_CHANGED_ACTION.getNullable(
-            _class,
-            jni$_.JString.type,
-          )
-          as jni$_.JString?;
+        _class,
+        jni$_.JString.type,
+      ) as jni$_.JString?;
 
   static final _id_UNKNOWN_SSID = _class.staticFieldId(
     r'UNKNOWN_SSID',
