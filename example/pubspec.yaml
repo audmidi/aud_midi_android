@@ -5,6 +5,8 @@ version: 1.0.0+1
 environment:
   sdk: ^3.13.0
 
+resolution: workspace
+
 dependencies:
   aud_midi_android:
     path: ../
@@ -14,13 +16,6 @@ dependencies:
   flutter:
     sdk: flutter
   jni: ^1.1.0
-
-# The siblings of the aud_midi family, checked out next to this package.
-dependency_overrides:
-  aud_midi_core:
-    path: ../../aud_midi_core
-  aud_midi_standard:
-    path: ../../aud_midi_standard
 
 dev_dependencies:
   flutter_lints: ^6.0.0

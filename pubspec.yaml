@@ -14,6 +14,11 @@ environment:
   sdk: ^3.13.0
   flutter: ">=3.47.0"
 
+# The example resolves together with the package, so that upgrading the
+# package upgrades the example too.
+workspace:
+  - example
+
 dev_dependencies:
   dna_audanika: ^0.1.0
   ffigen: ^23.0.0
