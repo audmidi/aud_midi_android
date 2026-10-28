@@ -23,7 +23,7 @@ packages:
       path: ".."
       relative: true
     source: path
-    version: "0.2.0"
+    version: "0.2.1"
   aud_midi_core:
     dependency: "direct main"
     description:
@@ -34,11 +34,10 @@ packages:
   aud_midi_standard:
     dependency: "direct main"
     description:
-      name: aud_midi_standard
-      sha256: c97a486531d36b9fa9765be8145d4367d7d501af113af8faf10b9154e6af09b9
-      url: "https://pub.dev"
-    source: hosted
-    version: "0.1.1"
+      path: "../../aud_midi_standard"
+      relative: true
+    source: path
+    version: "0.2.0"
   characters:
     dependency: transitive
     description:
@@ -67,10 +66,10 @@ packages:
     dependency: transitive
     description:
       name: crypto
-      sha256: c8ea0233063ba03258fbcf2ca4d6dadfefe14f02fab57702265467a19f27fadf
+      sha256: e3626ae6270383c9e3a549f34c9e4cd26c09ae6a9adaab2bf4737a00340efdc4
       url: "https://pub.dev"
     source: hosted
-    version: "3.0.7"
+    version: "3.0.8"
   ffi:
     dependency: "direct main"
     description:
@@ -120,10 +119,10 @@ packages:
     dependency: "direct main"
     description:
       name: jni
-      sha256: "6b9ca0602fef0230e83149afbe3f9f8227e94f2bbe84a1da4f14d699742f402d"
+      sha256: d8df6dab6847855512fe44dd9032b0bbe34dda7bf7597e41d30750879779813f
       url: "https://pub.dev"
     source: hosted
-    version: "1.1.0"
+    version: "1.1.1"
   jni_util:
     dependency: transitive
     description:
@@ -257,22 +256,14 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.2.2"
-  typed_data:
-    dependency: transitive
-    description:
-      name: typed_data
-      sha256: f9049c039ebfeb4cf7a7104a675823cd72dba8297f264b6637062516699fa006
-      url: "https://pub.dev"
-    source: hosted
-    version: "1.4.0"
   vector_math:
     dependency: transitive
     description:
       name: vector_math
-      sha256: "92b9910f66ed1057fd4da7b040ae7c74cafacf885bdc81be496928d5049b032d"
+      sha256: fa49e1674cb84acb900141714e6c6e1f9ae099827c24d141430ff6819db4e1bc
       url: "https://pub.dev"
     source: hosted
-    version: "2.4.3"
+    version: "2.4.4"
   yaml:
     dependency: transitive
     description:
@@ -282,5 +273,5 @@ packages:
     source: hosted
     version: "3.1.4"
 sdks:
-  dart: ">=3.12.2 <4.0.0"
-  flutter: ">=3.35.6"
+  dart: ">=3.13.0 <4.0.0"
+  flutter: ">=3.47.0"
