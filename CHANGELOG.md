@@ -2,6 +2,10 @@
 
 ## Unreleased
 
+### Added
+
+- Add a blog post about the placeholder app IDs
+
 ### Changed
 
 - Use com.example IDs in the example
