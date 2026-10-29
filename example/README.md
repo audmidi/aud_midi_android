@@ -28,11 +28,11 @@ The report covers:
 flutter pub get
 flutter build apk --release   # or --debug
 adb install build/app/outputs/flutter-apk/app-release.apk
-adb shell pm grant com.audanika.aud_midi_android_example \
+adb shell pm grant com.example.aud_midi_android_example \
   android.permission.BLUETOOTH_SCAN
-adb shell pm grant com.audanika.aud_midi_android_example \
+adb shell pm grant com.example.aud_midi_android_example \
   android.permission.BLUETOOTH_CONNECT
-adb shell am start -n com.audanika.aud_midi_android_example/.MainActivity
+adb shell am start -n com.example.aud_midi_android_example/.MainActivity
 adb logcat | grep AUD_MIDI_REPORT
 ```
 
