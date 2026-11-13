@@ -3,7 +3,8 @@ description: "Loopback check of aud_midi_android on an Android device or emulato
 version: 1.0.0+1
 
 environment:
-  sdk: ^3.13.0
+  sdk: ^3.14.0
+  flutter: ">=3.50.0"
 
 resolution: workspace
 
