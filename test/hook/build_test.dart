@@ -67,8 +67,8 @@ void main() {
           targetOS: os,
           targetArchitecture: Architecture.arm64,
           targetIOSSdk: os == OS.iOS ? IOSSdk.iPhoneOS : null,
-          targetIOSVersion: os == OS.iOS ? 15 : null,
-          targetMacOSVersion: os == OS.macOS ? 12 : null,
+          iOSDeploymentVersion: os == OS.iOS ? AppleVersion(15) : null,
+          macOSDeploymentVersion: os == OS.macOS ? AppleVersion(12) : null,
           check: (input, output) => expect(output.assets.code, isEmpty),
         );
       });

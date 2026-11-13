@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+### Changed
+
+- Upgrade the dependencies
+
 ## 0.3.1 - 2026-10-29
 
 ### Added
@@ -43,6 +49,7 @@
 - Add the example to a pub workspace, resolution: workspace in the example
 
 - Drop the lock file of the example, the package lock covers it
+
 
 ## 0.2.1 - 2026-10-24
 
@@ -94,6 +101,7 @@
 - Add independent constraints on the aud_midi packages
 
 - Add review fixes of ticket 26
+
 
 ## 0.1.1 - 2026-10-12
 
