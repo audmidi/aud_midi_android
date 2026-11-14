@@ -11,8 +11,8 @@ resolution: workspace
 dependencies:
   aud_midi_android:
     path: ../
-  aud_midi_core: ^0.2.0
-  aud_midi_standard: ^0.3.1
+  aud_midi_core: ^1.0.0
+  aud_midi_standard: ^1.0.0
   ffi: ^2.2.0
   flutter:
     sdk: flutter
